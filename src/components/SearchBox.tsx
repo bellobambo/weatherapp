@@ -10,7 +10,7 @@ type Props = {
 }
 
 
-// https://openweathermap.org/data/2.5/forecast
+
 
 export default function SearchBox( props : Props) {
     return (
