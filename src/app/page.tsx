@@ -6,9 +6,14 @@ import Image from "next/image";
 import axios from 'axios';
 import Loading from "@/components/Loading";
 import { format } from "date-fns/format";
-import { parseISO } from "date-fns";
+import { fromUnixTime, parseISO } from "date-fns";
 import Container from "@/components/Container";
 import { convertKenlinToCelcius } from "@/utils/convertKenlinToCelcius";
+import WeatherIcon from "@/components/WeatherIcon";
+import { getDayOrNightIcon } from "@/utils/getDayOrNightIcon";
+import WeatherDetails from "@/components/WeatherDetails";
+import { metersToKilometers } from "@/utils/metersToKilometer";
+import { convertWindSpeed } from "@/utils/convertWindSpeed";
 
 
 type WeatherData = {
@@ -87,7 +92,7 @@ export default function Home() {
 
 
   if (isLoading) return (
-    // <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><radialGradient id="a10" cx=".66" fx=".66" cy=".3125" fy=".3125" gradientTransform="scale(1.5)"><stop offset="0" stop-color="#080707"></stop><stop offset=".3" stop-color="#080707" stop-opacity=".9"></stop><stop offset=".6" stop-color="#080707" stop-opacity=".6"></stop><stop offset=".8" stop-color="#080707" stop-opacity=".3"></stop><stop offset="1" stop-color="#080707" stop-opacity="0"></stop></radialGradient><circle transform-origin="center" fill="none" stroke="url(#a10)" stroke-width="15" stroke-linecap="round" stroke-dasharray="200 1000" stroke-dashoffset="0" cx="100" cy="100" r="70"><animateTransform type="rotate" attributeName="transform" calcMode="spline" dur="2" values="360;0" keyTimes="0;1" keySplines="0 0 1 1" repeatCount="indefinite"></animateTransform></circle><circle transform-origin="center" fill="none" opacity=".2" stroke="#080707" stroke-width="15" stroke-linecap="round" cx="100" cy="100" r="70"></circle></svg>
+    // <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><radialGradient id="a10" cx=".66" fx=".66" cy=".3125" fy=".3125" gradientTransform="scale(1.5)"><stop offset="0" stopColor="#080707"></stop><stop offset=".3" stopColor="#080707" stop-opacity=".9"></stop><stop offset=".6" stopColor="#080707" stop-opacity=".6"></stop><stop offset=".8" stopColor="#080707" stop-opacity=".3"></stop><stop offset="1" stopColor="#080707" stop-opacity="0"></stop></radialGradient><circle transform-origin="center" fill="none" stroke="url(#a10)" stroke-width="15" stroke-linecap="round" stroke-dasharray="200 1000" stroke-dashoffset="0" cx="100" cy="100" r="70"><animateTransform type="rotate" attributeName="transform" calcMode="spline" dur="2" values="360;0" keyTimes="0;1" keySplines="0 0 1 1" repeatCount="indefinite"></animateTransform></circle><circle transform-origin="center" fill="none" opacity=".2" stroke="#080707" stroke-width="15" stroke-linecap="round" cx="100" cy="100" r="70"></circle></svg>
     <div className="flex justify-center items-start">
       <Loading />
     </div>
@@ -125,24 +130,46 @@ export default function Home() {
                   </span>
                 </p>
               </div>
-              <div className="flex gap-10 sm:gap-16 overflow-x-auto w-full justify-between pr-3">
+              <div className="flex gap-10 sm:gap-16 overflow-x-auto w-full justify-between pr-3 mb-6">
                 {data?.list.map((d, i) =>
-                  <div key={i} className="flex flex-col justify-between gap-2 text-xs font-semibold">
+                  <div key={i} className="flex flex-col justify-between gap-2 text-xs font-semibold mb-4">
                     <p className="whitespace-nowrap"> {format(parseISO(d.dt_txt), 'h:mm a')}</p>
+
+                    {/* <WeatherIcon iconName={d.weather[0].icon}/> */}
+                    <WeatherIcon iconName={getDayOrNightIcon(d.weather[0].icon, d.dt_txt)} />
+                    <p>
+                      {convertKenlinToCelcius(firstdata?.main.temp ?? 0)}°
+
+                    </p>
                   </div>
                 )}
               </div>
             </Container>
-            <div>
-
-            </div>
+          </div>
+          <div className="flex gap-4 my-4">
+            <Container className="w-fit justify-center flex-col px-4 items-center">
+              <p className="capitalize text-center"> {firstdata?.weather[0].description} </p>
+              <WeatherIcon iconName={getDayOrNightIcon(firstdata?.weather[0].icon ?? '', firstdata?.dt_txt ?? '')} />
+            </Container>
+            <Container className="bg-yellow-300/80 justify-between overflow-x-auto px-4">
+              <WeatherDetails 
+              visibility={metersToKilometers(firstdata?.visibility ?? 1000)} 
+              airPressure={`${firstdata?.main.pressure}hPa`}
+              humidity={`${firstdata?.main.humidity}%`}
+              sunrise={format(fromUnixTime(data?.city.sunrise ?? 1711949094 ), "H:mm")}
+              sunset={format(fromUnixTime(data?.city.sunset ?? 1711993099 ), "H:mm")}
+              windSpeed={convertWindSpeed(firstdata?.wind.speed ?? 5.04 )}
+              />
+            </Container>
           </div>
         </section>
 
 
         {/* 7 days forcast data */}
 
-        <section></section>
+        <section className="flex w-full flex-col gap-4">
+          <p className="text-2xl "> Forecast (7 days)</p>
+        </section>
       </main>
     </div>
   );
