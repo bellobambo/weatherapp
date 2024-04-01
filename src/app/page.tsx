@@ -14,6 +14,7 @@ import { getDayOrNightIcon } from "@/utils/getDayOrNightIcon";
 import WeatherDetails from "@/components/WeatherDetails";
 import { metersToKilometers } from "@/utils/metersToKilometer";
 import { convertWindSpeed } from "@/utils/convertWindSpeed";
+import ForecastWeatherDetails from "@/components/ForecastWeatherDetails";
 
 
 type WeatherData = {
@@ -85,7 +86,25 @@ export default function Home() {
 
 
   console.log('data', data)
-  console.log('data country', data?.city.country)
+  // console.log('data country', data?.city.country)
+
+  const uniqueDates = [
+    ...new Set(
+      data?.list.map(
+        (entry => new Date(entry.dt * 1000).toDateString().split('T')[0])
+      )
+    )
+  ]
+
+  const firstDataForEachDate = uniqueDates.map((date) =>{
+
+    return data?.list.find((entry) =>{
+      const entryDate = new Date(entry.dt * 1000).toISOString().split('T')[0];
+      const entryTime = new Date(entry.dt * 1000).getHours();
+      return entryDate === date && entryTime >= 6
+
+    })
+  })
 
 
   const firstdata = data?.list[0]
@@ -93,7 +112,7 @@ export default function Home() {
 
   if (isLoading) return (
     // <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><radialGradient id="a10" cx=".66" fx=".66" cy=".3125" fy=".3125" gradientTransform="scale(1.5)"><stop offset="0" stopColor="#080707"></stop><stop offset=".3" stopColor="#080707" stop-opacity=".9"></stop><stop offset=".6" stopColor="#080707" stop-opacity=".6"></stop><stop offset=".8" stopColor="#080707" stop-opacity=".3"></stop><stop offset="1" stopColor="#080707" stop-opacity="0"></stop></radialGradient><circle transform-origin="center" fill="none" stroke="url(#a10)" stroke-width="15" stroke-linecap="round" stroke-dasharray="200 1000" stroke-dashoffset="0" cx="100" cy="100" r="70"><animateTransform type="rotate" attributeName="transform" calcMode="spline" dur="2" values="360;0" keyTimes="0;1" keySplines="0 0 1 1" repeatCount="indefinite"></animateTransform></circle><circle transform-origin="center" fill="none" opacity=".2" stroke="#080707" stroke-width="15" stroke-linecap="round" cx="100" cy="100" r="70"></circle></svg>
-    <div className="flex justify-center items-start">
+    <div className="flex justify-center items-center min-h-screen animate-bounce">
       <Loading />
     </div>
   );
@@ -169,6 +188,26 @@ export default function Home() {
 
         <section className="flex w-full flex-col gap-4">
           <p className="text-2xl "> Forecast (7 days)</p>
+          {firstDataForEachDate.map((d, i)=>(
+            <ForecastWeatherDetails 
+            description={d?.weather[0].description ?? ""}
+            weatherIcon={d?.weather[0].icon ?? "01d"}
+            date={format(parseISO(d?.dt_txt ?? "2024-04-01 21:00:00"), "dd.MM" )}
+
+            day={format(parseISO(d?.dt_txt ?? "2024-04-01 21:00:00"), "EEEE" )}
+            feels_like={d?.main.feels_like ?? 0}
+            temp={d?.main.temp ?? 0}
+            temp_max={d?.main.temp_max ?? 0}
+            temp_min={d?.main.temp_min ?? 0}
+            airPressure={`${d?.main.pressure ?? 1011} hpa` }
+            humidity={`${d?.main.humidity ?? 58}%`}
+            sunrise={ format(fromUnixTime(data?.city.sunrise ?? 1711949094) , "H:mm") }
+            sunset={format(fromUnixTime(data?.city.sunset ?? 1711993099) , "H:mm")}
+            visibility={ `${metersToKilometers(d?.visibility ?? 10000)}`}
+            windSpeed={`${convertWindSpeed(d?.wind.speed ?? 3.36)}`}
+            key={i}/>
+
+          ))}
         </section>
       </main>
     </div>
