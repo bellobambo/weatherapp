@@ -15,6 +15,9 @@ import WeatherDetails from "@/components/WeatherDetails";
 import { metersToKilometers } from "@/utils/metersToKilometer";
 import { convertWindSpeed } from "@/utils/convertWindSpeed";
 import ForecastWeatherDetails from "@/components/ForecastWeatherDetails";
+import { useAtom } from "jotai";
+import { loadingCityAtom, placeAtom } from "./atom";
+import { useEffect } from "react";
 
 
 type WeatherData = {
@@ -72,17 +75,29 @@ type WeatherData = {
 
 
 export default function Home() {
-  const { isLoading, error, data } = useQuery<WeatherData>({
+
+  const [place, setPlace] = useAtom(placeAtom)
+  const [loadingCity, setLoadingCity] = useAtom(loadingCityAtom)
+
+
+
+  const { isLoading, error, data, refetch } = useQuery<WeatherData>({
     queryKey: ['repoData'],
     queryFn: async () => {
       try {
-        const { data } = await axios.get(`https://api.openweathermap.org/data/2.5/forecast?q=nigeria&appid=${process.env.NEXT_PUBLIC_WEATHER_KEY}`);
+        const { data } = await axios.get(`https://api.openweathermap.org/data/2.5/forecast?q=${place}&appid=${process.env.NEXT_PUBLIC_WEATHER_KEY}`);
         return data;
       } catch (error) {
         console.log(error)
       }
     },
   });
+
+
+  useEffect(() => {
+    refetch()
+  }, [place, refetch])
+  
 
 
   console.log('data', data)
@@ -120,8 +135,10 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-4 bg-gray-100 min-h-screen">
-      <Navbar />
+      <Navbar location={data?.city.name}/>
       <main className="px-3 max-w-7xl mx-auto flex flex-col gap-9 w-full pb-10 pt-4 text-black">
+
+        
         {/* today data */}
         <section>
           <div className="space-y-2">

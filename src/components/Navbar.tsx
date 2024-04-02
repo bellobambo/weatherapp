@@ -6,17 +6,22 @@ import { MdMyLocation } from "react-icons/md";
 import { IoLocationOutline } from "react-icons/io5";
 import SearchBox from './SearchBox';
 import axios from 'axios';
+import { useAtom } from 'jotai';
+import { loadingCityAtom, placeAtom } from '@/app/atom';
 
 
-type Props = {}
+type Props = { location?: string }
 
-export default function Navbar({ }: Props) {
+export default function Navbar({ location }: Props) {
 
     const [city, setCity] = useState('');
     const [error, setError] = useState('');
 
     const [suggestions, setSuggestions] = useState<any>('');
     const [showSuggestions, setShowSuggestions] = useState(false);
+
+    const [place, setPlace] = useAtom(placeAtom)
+    const [_, setLoadingCity] = useAtom(loadingCityAtom)
 
     const API_KEY = process.env.NEXT_PUBLIC_WEATHER_KEY
 
@@ -42,52 +47,95 @@ export default function Navbar({ }: Props) {
     }
 
 
-    function handleSuggestionClick(value : string){
+    function handleSuggestionClick(value: string) {
         setCity(value)
         setShowSuggestions(false);
     }
 
-    function handleSubmitSearch(e : React.FormEvent<HTMLFormElement>){
-       e.preventDefault()
-       if(suggestions.length == 0){
-        setError('Location Not Found');
-       }else{
-        setError('')
-        setSuggestions(false);
-       }
+    function handleSubmitSearch(e: React.FormEvent<HTMLFormElement>) {
+        setLoadingCity(true);
+        e.preventDefault()
+        if (suggestions.length == 0) {
+            setError('Location Not Found');
+            setLoadingCity(false)
+        } else {
+            setError('');
+            setTimeout(() => {
+                setLoadingCity(false)
+                setPlace(city);
+                setSuggestions(false);
+            }, 500);
+        }
+    }
+
+    function handleCurrentLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const { latitude, longitude } = position.coords;
+                try {
+                    setLoadingCity(true)
+                    const response = await axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${API_KEY}`)
+                    setTimeout(() => {
+                        setLoadingCity(false)
+                        setPlace(response.data.name);
+                    }, 500);
+                } catch (error) {
+                    setLoadingCity(false)
+                    console.log(error);
+                }
+            })
+        }
     }
 
     return (
-        <nav className='shadow-sm sticky top-0 left-0 z-50 bg-white'>
-            <div className='h-[80px] w-full flex justify-between items-center max-w-7xl px-3 mx-auto'>
-                <div className='flex items-center justify-center gap-2'>
-                    <h2 className="text-gray-500 text-3xl">
-                        Weather
-                    </h2>
-                    <MdWbSunny className='text-3xl mt-1 text-yellow-300' />
 
-                </div>
-                <section className='flex gap-2 items-center'>
-                    <MdMyLocation className='text-2xl text-gray-400 hover:opacity-80 cursor-pointer' />
-                    <IoLocationOutline className='text-2xl text-gray-600 hover:opacity-80 cursor-pointer' />
-                    <p className='text-slate-900 text-sm'>Nigeria</p>
-                    <div>
-                        <SearchBox
-                            value={city}
-                            onSubmit={handleSubmitSearch}
-                            onChange={(e) => handleInputChange(e.target.value)}
-                        />
-                        <SuggestionBox {...{
-                              showSuggestions,
-                              suggestions,
-                              handleSuggestionClick,
-                              error
-                        }} />
+        <>
+            <nav className='shadow-sm sticky top-0 left-0 z-50 bg-white'>
+                <div className='h-[80px] w-full flex justify-between items-center max-w-7xl px-3 mx-auto'>
+                    <div className='flex items-center justify-center gap-2'>
+                        <h2 className="text-gray-500 text-3xl">
+                            Weather
+                        </h2>
+                        <MdWbSunny className='text-3xl mt-1 text-yellow-300' />
+
                     </div>
-                </section>
+                    <section className='flex gap-2 items-center'>
+                        <MdMyLocation onClick={handleCurrentLocation} title='Your Current Location' className='text-2xl text-gray-400 hover:opacity-80 cursor-pointer' />
+                        <IoLocationOutline className='text-2xl text-gray-600 hover:opacity-80 cursor-pointer' />
+                        <p className='text-slate-900 text-sm'>{location}</p>
+                        <div className='relative hidden md:flex'>
+                            <SearchBox
+                                value={city}
+                                onSubmit={handleSubmitSearch}
+                                onChange={(e) => handleInputChange(e.target.value)}
+                            />
+                            <SuggestionBox {...{
+                                showSuggestions,
+                                suggestions,
+                                handleSuggestionClick,
+                                error
+                            }} />
+                        </div>
+                    </section>
+                </div>
+                Navbar
+            </nav>
+
+            <div className='relative'>
+                <SearchBox
+                    value={city}
+                    onSubmit={handleSubmitSearch}
+                    onChange={(e) => handleInputChange(e.target.value)}
+                />
+                <SuggestionBox {...{
+                    showSuggestions,
+                    suggestions,
+                    handleSuggestionClick,
+                    error
+                }} />
             </div>
-            Navbar
-        </nav>
+        </>
+
     )
 }
 
